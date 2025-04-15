@@ -1,5 +1,47 @@
 # Camel Kafka example
 
+## Setup for use with Kafka on Kubernetes
+Create a temporary NodePort to access the Kafka cluster from Orbital for testing purposes:
+
+### Patch ClusterIP to NodePort
+kubectl patch svc kafka-service-1 -n kafka --type=merge -p '{\"spec\": {\"type\": \"NodePort\"}}'
+
+kubectl get svc kafka-service-1 -n kafka
+
+### Undo the patch:
+kubectl patch svc kafka-service-1 -n kafka --type=merge -p '{\"spec\": {\"type\": \"ClusterIP\"}}'
+
+### To find the pod name for kafka:
+kubectl get pods -n kafka
+
+### To find the version of kafka in the pod:
+kubectl exec -n kafka kafka-broker-......  -- kafka-topics.sh --version
+
+Create Topics with partitions as specified in the readme for camel-example-kafka
+
+### Open shell in kafka pod:
+kubectl exec -it kafka-broker-1-66c68b4cdb-75tsp -n kafka -- bash
+
+kafka-topics.sh --create \
+  --zookeeper zookeeper-service.kafka.svc.cluster.local:2181 \
+  --replication-factor 1 \
+  --partitions 2 \
+  --topic WebLogs
+
+kafka-topics.sh --create \
+  --zookeeper zookeeper-service.kafka.svc.cluster.local:2181 \
+  --replication-factor 1 \
+  --partitions 1 \
+  --topic AccessLog
+
+### To use Offset Explorer tool:
+add to C:\Windows\System32\drivers\etc\hosts: 
+127.0.0.1 kafka-service-1.kafka.svc.cluster.local
+and in command:
+kubectl port-forward svc/kafka-service-1 9092:9092 -n kafka
+
+=======================================================================
+
 ### Introduction
 
 An example which shows how to integrate Camel with Kakfa.
