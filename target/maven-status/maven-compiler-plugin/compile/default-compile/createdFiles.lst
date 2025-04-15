@@ -1,0 +1,5 @@
+org\apache\camel\example\kafka\MessageConsumerClient.class
+org\apache\camel\example\kafka\MessagePublisherClient.class
+org\apache\camel\example\kafka\MessageConsumerClient$1.class
+org\apache\camel\example\kafka\MessagePublisherClient$1.class
+org\apache\camel\example\kafka\StringPartitioner.class

@@ -24,7 +24,7 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kafka.KafkaConstants;
-import org.apache.camel.component.properties.PropertiesComponent;
+//import org.apache.camel.component.properties.PropertiesComponent;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +39,17 @@ public final class MessagePublisherClient {
 
 		String testKafkaMessage = "Test Message from  MessagePublisherClient " + Calendar.getInstance().getTime();
 
+		// TO DO add try with resources
 		CamelContext camelContext = new DefaultCamelContext();
 
-		// Add route to send messages to Kafka
+		// Register and configure the PropertiesComponent manually
+		camelContext.getPropertiesComponent().setLocation("classpath:application.properties");
 
+		// Add route to send messages to Kafka
 		camelContext.addRoutes(new RouteBuilder() {
 			public void configure() {
-				PropertiesComponent pc = getContext().getComponent("properties", PropertiesComponent.class);
-				pc.setLocation("classpath:application.properties");
-
 				from("direct:kafkaStart").routeId("DirectToKafka")
-						.to("kafka:{{kafka.host}}:{{kafka.port}}?topic={{producer.topic}}").log("${headers}"); // Topic
+						.to("kafka:{{producer.topic}}?brokers={{kafka.bootstrap.servers}}").log("${headers}"); // Topic
 																												// and
 																												// offset
 																												// of
@@ -59,25 +59,21 @@ public final class MessagePublisherClient {
 																												// returned.
 
 				// Topic can be set in header as well.
-
-				from("direct:kafkaStartNoTopic").routeId("kafkaStartNoTopic").to("kafka:{{kafka.host}}:{{kafka.port}}")
+				from("direct:kafkaStartNoTopic").routeId("kafkaStartNoTopic").to("kafka:dummyTopic?brokers={{kafka.bootstrap.servers}}")
 						.log("${headers}"); // Topic and offset of the record is
 											// returned.
 
 				// Use custom partitioner based on the key.
-
 				from("direct:kafkaStartWithPartitioner").routeId("kafkaStartWithPartitioner")
-						.to("kafka:{{kafka.host}}:{{kafka.port}}?topic={{producer.topic}}&partitioner={{producer.partitioner}}")
+						.to("kafka:{{producer.topic}}?brokers={{kafka.bootstrap.servers}}&partitioner={{producer.partitioner}}")
 						.log("${headers}"); // Use custom partitioner based on
 											// the key.
 
 				// Takes input from the command line.
-
 				from("stream:in").setHeader(KafkaConstants.PARTITION_KEY, simple("0"))
 						.setHeader(KafkaConstants.KEY, simple("1")).to("direct:kafkaStart");
 
 			}
-
 		});
 
 		ProducerTemplate producerTemplate = camelContext.createProducerTemplate();

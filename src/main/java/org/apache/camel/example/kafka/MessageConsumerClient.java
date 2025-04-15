@@ -17,8 +17,9 @@
 package org.apache.camel.example.kafka;
 
 import org.apache.camel.CamelContext;
+//import org.apache.camel.Component;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.properties.PropertiesComponent;
+//import org.apache.camel.component.properties.PropertiesComponent;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,22 +35,22 @@ public final class MessageConsumerClient {
 
 		LOG.info("About to run Kafka-camel integration...");
 
+		// TO DO add try with resources
 		CamelContext camelContext = new DefaultCamelContext();
+
+		// Register and configure the PropertiesComponent manually
+		camelContext.getPropertiesComponent().setLocation("classpath:application.properties");
 
 		// Add route to send messages to Kafka
 
 		camelContext.addRoutes(new RouteBuilder() {
 			public void configure() {
-				PropertiesComponent pc = getContext().getComponent("properties", PropertiesComponent.class);
-				pc.setLocation("classpath:application.properties");
+				LOG.info("About to start route: Kafka Server -> Log ");
 
-				log.info("About to start route: Kafka Server -> Log ");
-
-				from("kafka:{{kafka.host}}:{{kafka.port}}?" +
-						"topic={{consumer.topic}}&" +
+				from("kafka:{{consumer.topic}}?brokers={{kafka.bootstrap.servers}}&" +
 						"maxPollRecords={{consumer.maxPollRecords}}&" +
 						"consumersCount={{consumer.consumersCount}}&" +
-						"seekToBeginning={{consumer.seekToBeginning}}&" +
+						"autoOffsetReset={{consumer.autoOffsetReset}}&" +
 						"groupId={{consumer.group}}")
 						.routeId("FromKafka").log("${body}");
 			}
