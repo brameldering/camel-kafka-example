@@ -42,7 +42,6 @@ public final class MessageConsumerClient {
 		camelContext.getPropertiesComponent().setLocation("classpath:application.properties");
 
 		// Add route to send messages to Kafka
-
 		camelContext.addRoutes(new RouteBuilder() {
 			public void configure() {
 				LOG.info("About to start route: Kafka Server -> Log ");

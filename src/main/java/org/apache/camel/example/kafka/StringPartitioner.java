@@ -27,22 +27,14 @@ public class StringPartitioner implements Partitioner {
 	 */
 	@Override
 	public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
-		
 		int partId = 0;
 		
 		if ( key != null && key instanceof String){
-			
 			String sKey = (String)key;
-			
 			int len = sKey.length();
-			
 			// This will return either 1 or zero
-			
-			partId = len % 2 ; 
-			
+			partId = len % 2 ;
 		}
-		
-		
 		return partId;
 	}
 

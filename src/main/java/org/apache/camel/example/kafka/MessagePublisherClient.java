@@ -48,31 +48,27 @@ public final class MessagePublisherClient {
 		// Add route to send messages to Kafka
 		camelContext.addRoutes(new RouteBuilder() {
 			public void configure() {
+				// Topic and offset of the record is returned.
 				from("direct:kafkaStart").routeId("DirectToKafka")
-						.to("kafka:{{producer.topic}}?brokers={{kafka.bootstrap.servers}}").log("${headers}"); // Topic
-																												// and
-																												// offset
-																												// of
-																												// the
-																												// record
-																												// is
-																												// returned.
-
+						.to("kafka:{{producer.topic}}?brokers={{kafka.bootstrap.servers}}")
+						.log("headers: ${headers}");
 				// Topic can be set in header as well.
-				from("direct:kafkaStartNoTopic").routeId("kafkaStartNoTopic").to("kafka:dummyTopic?brokers={{kafka.bootstrap.servers}}")
-						.log("${headers}"); // Topic and offset of the record is
-											// returned.
-
+				from("direct:kafkaStartNoTopic").routeId("kafkaStartNoTopic")
+						.to("kafka:placeholderTopic?brokers={{kafka.bootstrap.servers}}")
+						.log("${headers}"); // Topic and offset of the record is returned.
+				from("direct:kafkaStartDynamic")
+						.routeId("kafkaDynamicRoute")
+						.setHeader("kafkaUri", simple("kafka:${header.kafka.TOPIC}?brokers={{kafka.bootstrap.servers}}"))
+						.toD("${header.kafkaUri}")  // toD = dynamic endpoint
+						.log("${headers}");
 				// Use custom partitioner based on the key.
 				from("direct:kafkaStartWithPartitioner").routeId("kafkaStartWithPartitioner")
 						.to("kafka:{{producer.topic}}?brokers={{kafka.bootstrap.servers}}&partitioner={{producer.partitioner}}")
-						.log("${headers}"); // Use custom partitioner based on
-											// the key.
-
+						.log("${headers}"); // Use custom partitioner based on the key.
 				// Takes input from the command line.
 				from("stream:in").setHeader(KafkaConstants.PARTITION_KEY, simple("0"))
-						.setHeader(KafkaConstants.KEY, simple("1")).to("direct:kafkaStart");
-
+						.setHeader(KafkaConstants.KEY, simple("1"))
+						.to("direct:kafkaStart");
 			}
 		});
 
@@ -80,30 +76,29 @@ public final class MessagePublisherClient {
 		camelContext.start();
 
 		Map<String, Object> headers = new HashMap<>();
-
 		headers.put(KafkaConstants.PARTITION_KEY, 0);
 		headers.put(KafkaConstants.KEY, "1");
 		producerTemplate.sendBodyAndHeaders("direct:kafkaStart", testKafkaMessage, headers);
 
 		// Send with topicName in header
-
 		testKafkaMessage = "TOPIC " + testKafkaMessage;
 		headers.put(KafkaConstants.KEY, "2");
 		headers.put(KafkaConstants.TOPIC, "WebLogs");
-
 		producerTemplate.sendBodyAndHeaders("direct:kafkaStartNoTopic", testKafkaMessage, headers);
+
+		// Send with topicName in header
+		testKafkaMessage = "TOPIC_2 " + testKafkaMessage;
+		headers.put(KafkaConstants.KEY, "3");
+		headers.put(KafkaConstants.TOPIC, "WebLogs");
+		producerTemplate.sendBodyAndHeaders("direct:kafkaStartDynamic", testKafkaMessage, headers);
 
 		testKafkaMessage = "PART 0 :  " + testKafkaMessage;
 		Map<String, Object> newHeader = new HashMap<>();
-		newHeader.put(KafkaConstants.KEY, "AB"); // This should go to partition
-													// 0
-
+		newHeader.put(KafkaConstants.KEY, "AB"); // This should go to partition 0
 		producerTemplate.sendBodyAndHeaders("direct:kafkaStartWithPartitioner", testKafkaMessage, newHeader);
 
 		testKafkaMessage = "PART 1 :  " + testKafkaMessage;
-		newHeader.put(KafkaConstants.KEY, "ABC"); // This should go to partition
-													// 1
-
+		newHeader.put(KafkaConstants.KEY, "ABC"); // This should go to partition 1
 		producerTemplate.sendBodyAndHeaders("direct:kafkaStartWithPartitioner", testKafkaMessage, newHeader);
 
 		LOG.info("Successfully published event to Kafka.");
